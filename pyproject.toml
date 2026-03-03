@@ -1,0 +1,51 @@
+[project]
+name = "variantmedium"
+version = "1.2.0"
+requires-python = ">=3.11"
+dependencies = [
+    "requests==2.32.5",
+    "pandas==2.3.3",
+]
+
+[project.optional-dependencies]
+ml = [
+    "numpy==1.24.3",
+    "scikit-learn==1.2.2",
+    "scipy==1.10.1",
+    "fire==0.5.0",
+    "joblib==1.2.0",
+    "tensorboard==2.20.0",
+    "pysam==0.21.0",
+    "torch==2.0.1",
+]
+
+[project.scripts]
+filter_candidates    = "src.filter_candidates.candidate_filtering:filter_candidates"
+run_variant_medium   = "src.run:main"
+prepare_input_files  = "prepare_input_files:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+sources = ["bin"]
+
+[tool.uv]
+python = "3.11"
+
+[[tool.uv.index]]
+name = "pytorch-cu117"
+url = "https://download.pytorch.org/whl/cu117"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cu117", marker = "platform_machine == 'x86_64'" },
+    { index = "pytorch-cpu",   marker = "platform_machine != 'x86_64'" },
+]

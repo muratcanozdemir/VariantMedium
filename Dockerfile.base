@@ -1,0 +1,26 @@
+FROM python:3.11-slim-bookworm
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        tabix \
+        wget \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# bake bigBedToBed in — never download executables at runtime
+RUN wget -q https://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/bigBedToBed \
+        -O /usr/local/bin/bigBedToBed \
+    && chmod +x /usr/local/bin/bigBedToBed
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+WORKDIR /app
+COPY pyproject.toml .
+COPY bin/ bin/
+
+RUN uv pip install --system --no-cache .
+
+# remove the dead import before installing
+RUN sed -i '1{/^from pandas.core.window.ewm import \*/d}' bin/src/run.py
+
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
