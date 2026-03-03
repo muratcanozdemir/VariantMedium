@@ -1,0 +1,58 @@
+name: lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv pip install --system ".[ml]" ruff mypy
+
+      - name: ruff lint
+        run: ruff check bin/
+
+      - name: ruff format check
+        run: ruff format --check bin/
+
+      - name: mypy
+        run: mypy bin/src/ --ignore-missing-imports --no-strict-optional
+
+  nextflow-schema:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nextflow
+        uses: nf-core/setup-nextflow@v2
+        with:
+          version: "24.10.3"
+          
+      - name: Install nf-core tools
+        run: pip install nf-core
+
+      - name: Validate Nextflow schema
+        run: nf-core schema lint
+
+  model-provenance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check model SHAs are not placeholder values
+        run: |
+          if grep -r "REPLACE_WITH" nextflow.config docs/models/info.txt; then
+            echo "ERROR: Placeholder model SHA values detected."
+            echo "Update nextflow.config and docs/models/info.txt with real commit SHAs and checksums."
+            exit 1
+          fi

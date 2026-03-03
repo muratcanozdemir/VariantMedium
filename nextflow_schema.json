@@ -1,0 +1,158 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "https://raw.githubusercontent.com/TRON-Bioinformatics/VariantMedium/main/nextflow_schema.json",
+    "title": "TRON-Bioinformatics/VariantMedium pipeline parameters",
+    "description": "Somatic point mutation calling using 3D DenseNets",
+    "type": "object",
+    "definitions": {
+        "required_options": {
+            "title": "Required options",
+            "type": "object",
+            "required": ["samplesheet", "outdir"],
+            "properties": {
+                "samplesheet": {
+                    "type": "string",
+                    "description": "Path to input CSV/TSV samplesheet",
+                    "format": "file-path",
+                    "exists": true
+                },
+                "outdir": {
+                    "type": "string",
+                    "description": "Output directory for all pipeline results",
+                    "format": "directory-path"
+                }
+            }
+        },
+        "calling_options": {
+            "title": "Calling options",
+            "type": "object",
+            "properties": {
+                "snv_calling": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Call somatic SNVs"
+                },
+                "indel_calling": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Call somatic indels"
+                },
+                "seq_mode": {
+                    "type": "string",
+                    "default": "wgs",
+                    "enum": ["wgs", "wes", "panel"],
+                    "description": "Sequencing mode — used for resource allocation guidance"
+                }
+            }
+        },
+        "skip_options": {
+            "title": "Skip options",
+            "type": "object",
+            "properties": {
+                "skip_preprocessing": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "skip_candidate_calling": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "skip_feature_generation": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "skip_candidate_filtering": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "skip_tensor_generation": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "run_data_staging": {
+                    "type": "boolean",
+                    "default": true
+                }
+            }
+        },
+        "reference_options": {
+            "title": "Reference options",
+            "type": "object",
+            "properties": {
+                "ref": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Reference genome FASTA — overrides data staging output path"
+                },
+                "exome_bed": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Exome target BED.gz — overrides data staging output path"
+                },
+                "dbsnp": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "dbSNP VCF.gz — overrides data staging output path"
+                },
+                "known_indels1": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Known indels VCF.gz — overrides data staging output path"
+                },
+                "bed_url": {
+                    "type": "string",
+                    "default": "http://hgdownload.soe.ucsc.edu/gbdb/hg38/exomeProbesets/S07604624_Covered.bb",
+                    "description": "URL to exome target regions in bigBed format"
+                }
+            }
+        },
+        "container_options": {
+            "title": "Container options",
+            "type": "object",
+            "properties": {
+                "container_base": {
+                    "type": "string",
+                    "description": "Base container image (stage_refs, stage_models, prepare_inputs)"
+                },
+                "container_ml": {
+                    "type": "string",
+                    "description": "ML container image (filter_candidates, call_variants)"
+                },
+                "mount_path": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "description": "Bind mount path — required for singularity profile"
+                }
+            }
+        },
+        "model_options": {
+            "title": "Model options",
+            "type": "object",
+            "properties": {
+                "learning_rate": {
+                    "type": "number",
+                    "default": 0.13,
+                    "description": "Learning rate — do not change without retraining"
+                },
+                "drop_rate": {
+                    "type": "number",
+                    "default": 0.3,
+                    "description": "Dropout rate — do not change without retraining"
+                },
+                "epoch": {
+                    "type": "integer",
+                    "default": 0,
+                    "description": "Training epochs — 0 means inference only"
+                }
+            }
+        }
+    },
+    "allOf": [
+        { "$ref": "#/definitions/required_options" },
+        { "$ref": "#/definitions/calling_options" },
+        { "$ref": "#/definitions/skip_options" },
+        { "$ref": "#/definitions/reference_options" },
+        { "$ref": "#/definitions/container_options" },
+        { "$ref": "#/definitions/model_options" }
+    ]
+}

@@ -1,0 +1,110 @@
+name: container
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  build-base:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push base image
+        id: push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.base
+          push: true
+          tags: |
+            ghcr.io/tron-bioinformatics/variantmedium-base:${{ github.ref_name }}
+            ghcr.io/tron-bioinformatics/variantmedium-base:latest
+
+  build-ml:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push ML image
+        id: push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.ml
+          push: true
+          tags: |
+            ghcr.io/tron-bioinformatics/variantmedium-ml:${{ github.ref_name }}
+            ghcr.io/tron-bioinformatics/variantmedium-ml:latest
+          build-args: |
+            CUDA_VERSION=11.7.1
+
+  pin-digests:
+    needs: [build-base, build-ml]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pin image digests into nextflow.config
+        run: |
+          BASE_DIGEST="${{ needs.build-base.outputs.digest }}"
+          ML_DIGEST="${{ needs.build-ml.outputs.digest }}"
+          TAG="${{ github.ref_name }}"
+
+          sed -i \
+            "s|container_base\s*=.*|container_base = 'ghcr.io/tron-bioinformatics/variantmedium-base:${TAG}@${BASE_DIGEST}'|" \
+            nextflow.config
+
+          sed -i \
+            "s|container_ml\s*=.*|container_ml   = 'ghcr.io/tron-bioinformatics/variantmedium-ml:${TAG}@${ML_DIGEST}'|" \
+            nextflow.config
+
+      - name: Commit pinned digests
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add nextflow.config
+          git commit -m "ci: pin container digests for ${{ github.ref_name }}"
+          git push origin HEAD:main
+
+  verify-model-provenance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Block release if model SHAs are placeholders
+        run: |
+          if grep -r "REPLACE_WITH" nextflow.config docs/models/info.txt; then
+            echo "ERROR: Release blocked — placeholder model SHA values detected."
+            echo "Pin HuggingFace commit SHAs and SHA-256 checksums before tagging a release."
+            exit 1
+          fi

@@ -4,8 +4,8 @@ import hashlib
 import requests
 from pathlib import Path
 
-def download_file(url: str, dest: Path):
-    """Download file from a URL with retries."""
+
+def download_file(url: str, dest: Path) -> None:
     for attempt in range(5):
         try:
             response = requests.get(url, timeout=60)
@@ -13,65 +13,70 @@ def download_file(url: str, dest: Path):
             dest.write_bytes(response.content)
             return
         except requests.RequestException as e:
-            print("Attempt {}/5 failed: {}".format(attempt+1, e))
-    raise RuntimeError("Failed to download {} after 5 attempts".format(url))
+            print(f"Attempt {attempt + 1}/5 failed: {e}")
+    raise RuntimeError(f"Failed to download {url} after 5 attempts")
 
-def verify_checksum(file_path: Path, expected_md5: str):
-    """Verify file MD5 checksum."""
-    md5 = hashlib.md5()
+
+def verify_sha256(file_path: Path, expected: str) -> None:
+    h = hashlib.sha256()
     with file_path.open("rb") as f:
-        for chunk in iter(lambda: f.read(8192), b""):
-            md5.update(chunk)
-    actual_md5 = md5.hexdigest()
-    if actual_md5 != expected_md5:
-        raise ValueError("Checksum mismatch for {} Expected: {} Actual:   {}".format(file_path.name, expected_md5, actual_md5))
-    print(" Checksum Verified: {}".format(file_path.name))
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+    actual = h.hexdigest()
+    if actual != expected:
+        raise ValueError(
+            f"SHA-256 mismatch for {file_path.name}\n"
+            f"  expected: {expected}\n"
+            f"  actual:   {actual}"
+        )
+    print(f"  SHA-256 verified: {file_path.name}")
+
 
 def generate_version_yml() -> None:
-    with open("versions.yml", "w") as yml:
-        yml.write("${task.process}\\n")
-        yml.write("stage_models: ${params.version}\\n")
+    with open("versions.yml", "w") as f:
+        f.write("${task.process}\n")
+        f.write("stage_models: ${params.version}\n")
 
-def main():
 
+def main() -> None:
+    # URLs pinned to specific HuggingFace commit SHAs — never resolve/main/
+    # To update: fetch the commit SHA from the HuggingFace repo and update
+    # both the URL and sha256 atomically. See docs/models/info.txt for provenance.
     files = [
         {
-            "url": "https://huggingface.co/tron-mainz/3ddensenet_snv/resolve/main/3ddensenet_snv.pt",
+            "url": "https://huggingface.co/tron-mainz/3ddensenet_snv/resolve/${params.model_commit_snv}/3ddensenet_snv.pt",
             "filename": "3ddensenet_snv.pt",
-            "checksum": "0caf56d20bf3324a7d36614229105cc1",
+            "sha256": "${params.model_sha256_snv}",
         },
         {
-            "url": "https://huggingface.co/tron-mainz/3ddensenet_indel/resolve/main/3ddensenet_indel.pt",
+            "url": "https://huggingface.co/tron-mainz/3ddensenet_indel/resolve/${params.model_commit_indel}/3ddensenet_indel.pt",
             "filename": "3ddensenet_indel.pt",
-            "checksum": "a48a4d46df5c041c61d320d10c3857ca",
+            "sha256": "${params.model_sha256_indel}",
         },
         {
-            "url": "https://huggingface.co/tron-mainz/extra_trees.snv/resolve/main/extra_trees.snv.joblib",
+            "url": "https://huggingface.co/tron-mainz/extra_trees.snv/resolve/${params.model_commit_extra_trees_snv}/extra_trees.snv.joblib",
             "filename": "extra_trees.snv.joblib",
-            "checksum": "8fa269b15cba16b98b107b594b162b72",
+            "sha256": "${params.model_sha256_extra_trees_snv}",
         },
         {
-            "url": "https://huggingface.co/tron-mainz/extra_trees.indel/resolve/main/extra_trees.indel.joblib",
+            "url": "https://huggingface.co/tron-mainz/extra_trees.indel/resolve/${params.model_commit_extra_trees_indel}/extra_trees.indel.joblib",
             "filename": "extra_trees.indel.joblib",
-            "checksum": "511718696c1c0997832b5b942beebf54",
+            "sha256": "${params.model_sha256_extra_trees_indel}",
         },
     ]
 
     output_dir = Path("./models")
     output_dir.mkdir(parents=True, exist_ok=True)
-    print("Downloading models to {}".format(output_dir.resolve()))
 
     for f in files:
-        
         dest = output_dir / f["filename"]
-        print("Downloading {} ...".format(f["filename"]))
+        print(f"Downloading {f['filename']} ...")
         download_file(f["url"], dest)
-        verify_checksum(dest, f["checksum"])
+        verify_sha256(dest, f["sha256"])
 
     print("All models downloaded and verified")
-
     generate_version_yml()
-    print("Generated versions.yml")
+
 
 if __name__ == "__main__":
     main()

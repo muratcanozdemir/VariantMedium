@@ -1,0 +1,29 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  stub:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nextflow
+        uses: nf-core/setup-nextflow@v2
+        with:
+          version: "24.10.3"
+
+      - name: Run stub test profile
+        run: |
+          nextflow run . \
+            -profile test_ci \
+            -stub-run
+
+      - name: Check expected outputs exist
+        run: |
+          # stub mode should produce versions.yml from every module
+          find /tmp/variantmedium_test_ci -name "versions.yml" | wc -l

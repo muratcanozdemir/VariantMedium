@@ -1,0 +1,2 @@
+sample_name	pair_identifier	tumor_bam	normal_bam
+test_sample	1	/dev/null	/dev/null

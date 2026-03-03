@@ -125,8 +125,14 @@ trace-*
 *.pt
 *.joblib
 ref/
-*.tsv
 slurm_*
 logs/
 null/
 samplesheet.csv
+
+# variantmedium pipeline outputs — exclude TSVs produced by runs
+*.tsv
+
+# but keep test fixtures
+!tests/**/*.tsv
+!tests/*.tsv
