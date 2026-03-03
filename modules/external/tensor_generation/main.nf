@@ -22,6 +22,8 @@ process TENSOR_GENERATION {
         --input_files ${pairs_w_cands_tsv} \\
         --publish_dir ${outdir}/output_01_05_tensors \\
         --reference ${ref} \\
+        --cpus ${params.bam2tensor_cpus} \\
+        --memory ${params.bam2tensor_memory} \\
         --window 150 \\
         --max_coverage 500 \\
         --read_length 50 \\

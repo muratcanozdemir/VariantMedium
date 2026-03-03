@@ -24,6 +24,8 @@ process CANDIDATE_CALLING {
         --input_files ${pairs_tsv} \\
         --reference ${ref} \\
         --output ${outdir}/output_01_02_candidates_strelka2 \\
+        --cpus ${params.strelka2_cpus} \\
+        --memory ${params.strelka2_memory} \\
         ${intervals} \\
         ${strelka_config} \\
         ${resume}

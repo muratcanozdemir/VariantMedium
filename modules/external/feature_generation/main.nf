@@ -24,6 +24,8 @@ process FEATURE_GENERATION {
         --input_bams ${bams_tsv} \\
         --reference ${ref} \\
         --output ${outdir}/output_01_03_vcf_postprocessing \\
+        --cpus ${params.vcf_post_cpus} \\
+        --memory ${params.vcf_post_memory} \\
         ${vcf_post_config} \\
         ${resume}
     """
