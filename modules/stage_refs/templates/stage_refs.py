@@ -119,12 +119,13 @@ def main():
 
     # -------------------------
     # bigBedToBed binary
-    # -------------------------
-    print("[INFO] Downloading bigBedToBed binary")
-    bigbed_url = "https://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/bigBedToBed"
-    bigbed_bin = ref_dir / "bigBedToBed"
-    download_file(bigbed_url, bigbed_bin)
-    bigbed_bin.chmod(0o755)
+    # # -------------------------
+    bigbed_bin = get_bigbed_binary(ref_dir)
+    # print("[INFO] Downloading bigBedToBed binary")
+    # bigbed_url = "https://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/bigBedToBed"
+    # bigbed_bin = ref_dir / "bigBedToBed"
+    # download_file(bigbed_url, bigbed_bin)
+    # bigbed_bin.chmod(0o755)
 
     # -------------------------
     # Convert .bb → .bed
@@ -152,6 +153,15 @@ def main():
     print("[INFO] Generating versions.yml")
     generate_version_yml()
 
+def get_bigbed_binary(ref_dir: Path) -> Path:
+    """Locate bigBedToBed — must be baked into the container image."""
+    system_path = shutil.which("bigBedToBed")
+    if system_path:
+        return Path(system_path)
+    raise RuntimeError(
+        "bigBedToBed not found on PATH. "
+        "Ensure the container image includes it at /usr/local/bin/bigBedToBed"
+    )
 
 if __name__ == "__main__":
     main()

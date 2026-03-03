@@ -113,7 +113,8 @@ def make_input(df, skip_preprocessing, output_dir):
 
 
 # Entrypoint
-if __name__ == "__main__":
+
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input_file", required=True)
     parser.add_argument("-o", "--output_dir", default=".")
@@ -124,3 +125,7 @@ if __name__ == "__main__":
     validate_paths(df, args.skip_preprocessing)
     make_input(df, args.skip_preprocessing, args.output_dir)
     print("[INFO] Input TSV files generated successfully")
+
+
+if __name__ == "__main__":
+    main()
